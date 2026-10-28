@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ডিজিটাল স্কেল সার্ভিসিং রেজিস্টার ও ক্যাশ মেমো</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Hind Siliguri for Bengali) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background-color: #f1f5f9;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printableMemo, #printableMemo * {
+                visibility: visible;
+            }
+            #printableMemo {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 15px;
+                box-shadow: none !important;
+                border: 1px solid #000;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Top Navigation -->
+    <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-scale-balanced text-2xl text-amber-300"></i>
+                <div>
+                    <h1 class="text-lg md:text-xl font-bold leading-tight">ডিজিটাল স্কেল রিপেয়ারিং রেজিস্টার</h1>
+                    <p class="text-xs text-indigo-200">সার্ভিসিং, বকেয়া ও আয় ট্র্যাকার</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="openModal('newEntryModal')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center shadow transition-all">
+                    <i class="fa-solid fa-plus-circle mr-1.5"></i> নতুন সার্ভিস এন্ট্রি
+                </button>
+                <button onclick="openModal('backupModal')" title="ডাটা ব্যাকআপ / রিস্টোর" class="bg-indigo-800 hover:bg-indigo-900 text-white p-2 rounded-lg text-sm transition-all">
+                    <i class="fa-solid fa-database"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-3 sm:px-6 py-5 flex-1 w-full">
+
+        <!-- Summary Counters / Dashboard Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 mb-6">
+            <!-- Pending Works -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-3 border-l-4 border-l-amber-500">
+                <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">কাজ বাকি আছে</p>
+                    <h3 id="statPending" class="text-xl font-bold text-slate-800">0 টি</h3>
+                </div>
+            </div>
+
+            <!-- Ready / Not Delivered -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-3 border-l-4 border-l-blue-500">
+                <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">রেডি (ডেলিভারি বাকি)</p>
+                    <h3 id="statReady" class="text-xl font-bold text-slate-800">0 টি</h3>
+                </div>
+            </div>
+
+            <!-- This Week Completed -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-3 border-l-4 border-l-purple-500">
+                <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-calendar-week"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">এই সপ্তাহে সম্পন্ন</p>
+                    <h3 id="statWeekCompleted" class="text-xl font-bold text-slate-800">0 টি</h3>
+                </div>
+            </div>
+
+            <!-- Total Due Balance -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-3 border-l-4 border-l-red-500">
+                <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">মোট বকেয়া পাওনা</p>
+                    <h3 id="statTotalDue" class="text-xl font-bold text-red-600">৳ ০</h3>
+                </div>
+            </div>
+
+            <!-- Monthly Income Collected -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-3 border-l-4 border-l-emerald-500 col-span-2 sm:col-span-2 lg:col-span-1">
+                <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-sack-dollar"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">চলতি মাসে ক্যাশ জমা</p>
+                    <h3 id="statMonthlyPaid" class="text-xl font-bold text-emerald-600">৳ ০</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls: Search & Filters -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
+            <div class="flex flex-col md:flex-row gap-3 justify-between items-center">
+                <!-- Search Box -->
+                <div class="relative w-full md:w-80">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="গ্রাহকের নাম বা মোবাইল দিয়ে খুঁজুন..." 
+                           class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <!-- Status Filter Tabs -->
+                <div class="flex flex-wrap gap-1.5 w-full md:w-auto">
+                    <button onclick="setStatusFilter('all')" id="btnFilterAll" class="filter-btn active-filter px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white">সবগুলো</button>
+                    <button onclick="setStatusFilter('pending')" id="btnFilterPending" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">কাজ বাকি</button>
+                    <button onclick="setStatusFilter('ready')" id="btnFilterReady" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">রেডি</button>
+                    <button onclick="setStatusFilter('delivered')" id="btnFilterDelivered" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">ডেলিভারি হয়েছে</button>
+                    <button onclick="setStatusFilter('due')" id="btnFilterDue" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-100 text-red-700 hover:bg-red-200">শুধু বকেয়া</button>
+                </div>
+
+                <!-- Quick Date Filter -->
+                <div class="w-full md:w-auto flex items-center space-x-2">
+                    <span class="text-xs text-slate-500 whitespace-nowrap"><i class="fa-regular fa-calendar"></i> সময়কাল:</span>
+                    <select id="timeFilter" onchange="renderTable()" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="all">সব সময়</option>
+                        <option value="today">আজকের জমা</option>
+                        <option value="week">এই সপ্তাহ</option>
+                        <option value="month">এই চলতি মাস</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Job Cards / Table View -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <span class="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                    রেকর্ড তালিকা (<span id="recordCount">0</span> টি পাওয়া গেছে)
+                </span>
+                <span class="text-xs text-slate-400">সর্বশেষ এন্ট্রি উপরে প্রদর্শিত</span>
+            </div>
+
+            <!-- Table (Responsive Desktop / Tablet) -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-slate-100/70 text-slate-600 font-semibold border-b border-slate-200 text-xs">
+                            <th class="p-3">আইডি ও তারিখ</th>
+                            <th class="p-3">গ্রাহক ও মোবাইল</th>
+                            <th class="p-3">মেশিন ও সমস্যা</th>
+                            <th class="p-3 text-right">খরচ / জমা / বাকি</th>
+                            <th class="p-3 text-center">স্ট্যাটাস</th>
+                            <th class="p-3 text-center">অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody id="serviceTableBody" class="divide-y divide-slate-100">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-12 px-4">
+                <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                    <i class="fa-solid fa-inbox"></i>
+                </div>
+                <h4 class="text-base font-semibold text-slate-700">কোনো সার্ভিসিং রেকর্ড পাওয়া যায়নি</h4>
+                <p class="text-xs text-slate-500 mt-1">নতুন কাজ এলে উপরে "নতুন সার্ভিস এন্ট্রি" বাটনে ক্লিক করে যোগ করুন।</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: New / Edit Service Intake -->
+    <div id="newEntryModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col max-h-[95vh] animate-scale-up">
+            <div class="bg-indigo-700 px-5 py-3.5 text-white flex justify-between items-center">
+                <h3 id="modalTitle" class="font-bold text-base flex items-center">
+                    <i class="fa-solid fa-wrench mr-2 text-amber-300"></i> নতুন মেশিন সার্ভিস এন্ট্রি
+                </h3>
+                <button onclick="closeModal('newEntryModal')" class="text-indigo-200 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="serviceForm" onsubmit="handleFormSubmit(event)" class="p-5 overflow-y-auto space-y-4">
+                <input type="hidden" id="editEntryId" value="">
+
+                <!-- Customer Info -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">গ্রাহকের নাম *</label>
+                        <input type="text" id="custName" required placeholder="উদা: মোঃ আব্দুর রহিম" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">মোবাইল নম্বর *</label>
+                        <input type="tel" id="custPhone" required placeholder="০১৭১xxxxxxx" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Machine Specs -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">মেশিনের ধরন / ক্যাপাসিটি</label>
+                        <input type="text" id="machineType" placeholder="উদা: ৪০ কেজি টেবিল স্কেল / ১০০ কেজি প্ল্যাটফর্ম" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">সমস্যার বিবরণ / পার্টস</label>
+                        <input type="text" id="problemDesc" placeholder="উদা: নতুন ব্যাটারি লাগানো, মাদারবোর্ড মেরামত" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Dates -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">মেশিন জমার তারিখ *</label>
+                        <input type="date" id="intakeDate" required 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">সম্ভাব্য ডেলিভারি তারিখ</label>
+                        <input type="date" id="deliveryDate" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Pricing & Payment -->
+                <div class="bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-100 space-y-3">
+                    <p class="text-xs font-bold text-indigo-900 uppercase tracking-wide">খরচ ও পেমেন্ট হিসাব</p>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">মোট বিল (৳)</label>
+                            <input type="number" id="totalCost" min="0" value="0" oninput="calculateDue()" 
+                                   class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm font-semibold text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">অগ্রিম পরিশোধ (৳)</label>
+                            <input type="number" id="advancePaid" min="0" value="0" oninput="calculateDue()" 
+                                   class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm font-semibold text-emerald-700">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">বকেয়া (৳)</label>
+                            <input type="number" id="dueAmount" readonly 
+                                   class="w-full px-2.5 py-1.5 border border-red-200 bg-red-50 rounded-lg text-sm font-bold text-red-600">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Initial Status -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">বর্তমান স্ট্যাটাস</label>
+                    <select id="workStatus" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="pending">কাজ বাকি (Pending)</option>
+                        <option value="ready">মেরামত সম্পন্ন (Ready for Delivery)</option>
+                        <option value="delivered">ডেলিভারি সম্পন্ন (Delivered)</option>
+                        <option value="cancelled">বাতিল (Cancelled)</option>
+                    </select>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex justify-end space-x-2 pt-2 border-t border-slate-200">
+                    <button type="button" onclick="closeModal('newEntryModal')" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-100 transition-all">বাতিল</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-md transition-all">সংরক্ষণ করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Memo / Receipt Viewer & Printable -->
+    <div id="memoModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl flex flex-col max-h-[95vh]">
+            <div class="p-3 bg-slate-800 text-white flex justify-between items-center no-print">
+                <span class="text-xs font-semibold"><i class="fa-solid fa-receipt mr-1 text-amber-400"></i> মানি রিসিট ও ক্যাশ মেমো</span>
+                <button onclick="closeModal('memoModal')" class="text-slate-300 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Printable Memo Content -->
+            <div id="printableMemo" class="p-6 overflow-y-auto text-slate-800 space-y-4 text-xs">
+                <!-- Shop Header -->
+                <div class="text-center border-b border-slate-200 pb-3">
+                    <h2 class="text-xl font-bold text-slate-900 tracking-wide">মা ডিজিটাল স্কেল ও সার্ভিস সেন্টার</h2>
+                    <p class="text-xs text-slate-500">সকল প্রকার ডিজিটাল ওজন পরিমাপক স্কেল বিক্রয় ও মেরামত করা হয়</p>
+                    <p class="text-[11px] text-slate-500">মোবাইল: ০১৭১২-xxxxxx | ঠিকানা: স্টেশন রোড বাজার</p>
+                    <div class="inline-block mt-2 px-3 py-0.5 bg-slate-100 rounded border border-slate-300 text-[11px] font-bold text-slate-700">
+                        সার্ভিস টোকেন / ক্যাশ মেমো
+                    </div>
+                </div>
+
+                <!-- Customer Details -->
+                <div class="grid grid-cols-2 gap-2 text-[12px] bg-slate-50 p-2.5 rounded border border-slate-200">
+                    <div>
+                        <span class="text-slate-500">টোকেন নং:</span> <strong id="memoToken" class="text-indigo-700">#0000</strong><br>
+                        <span class="text-slate-500">গ্রাহক:</span> <strong id="memoCustomer">--</strong><br>
+                        <span class="text-slate-500">ফোন:</span> <span id="memoPhone">--</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-slate-500">জমার তারিখ:</span> <span id="memoIntakeDate">--</span><br>
+                        <span class="text-slate-500">ডেলিভারি:</span> <span id="memoDeliveryDate">--</span><br>
+                        <span class="text-slate-500">স্ট্যাটাস:</span> <span id="memoStatusBadge">--</span>
+                    </div>
+                </div>
+
+                <!-- Service Details -->
+                <div class="border border-slate-200 rounded overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-100 text-slate-700 text-[11px]">
+                            <tr>
+                                <th class="p-2">বিবরণ / পার্টস</th>
+                                <th class="p-2 text-right">টাকা</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr>
+                                <td class="p-2">
+                                    <strong id="memoMachine">--</strong>
+                                    <div id="memoProblem" class="text-slate-500 text-[11px] mt-0.5">--</div>
+                                </td>
+                                <td id="memoTotalBill" class="p-2 text-right font-semibold">৳ 0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Bill Calculation -->
+                <div class="border-t border-slate-200 pt-2 space-y-1 text-right text-[12px]">
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">মোট বিল:</span>
+                        <span id="memoCalcTotal" class="font-bold text-slate-800">৳ 0</span>
+                    </div>
+                    <div class="flex justify-between text-emerald-700">
+                        <span>জমা / পরিশোধ:</span>
+                        <span id="memoCalcPaid" class="font-bold">৳ 0</span>
+                    </div>
+                    <div class="flex justify-between text-red-600 font-bold border-t border-slate-200 pt-1 text-sm">
+                        <span>অবশিষ্ট বকেয়া:</span>
+                        <span id="memoCalcDue">৳ 0</span>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-dashed border-slate-300 text-center text-[10px] text-slate-400">
+                    * মেমোটি যত্নসহকারে সংরক্ষণ করুন। ডেলিভারির সময় মেমো দেখাতে হবে। ধন্যবাদ!
+                </div>
+            </div>
+
+            <!-- Memo Modal Bottom Actions -->
+            <div class="p-3 bg-slate-100 border-t border-slate-200 flex justify-between gap-2 no-print">
+                <button onclick="shareWhatsApp()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center shadow">
+                    <i class="fa-brands fa-whatsapp text-sm mr-1.5"></i> হোয়াটসঅ্যাপ মেসেজ
+                </button>
+                <button onclick="window.print()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center shadow">
+                    <i class="fa-solid fa-print mr-1.5"></i> মেমো প্রিন্ট
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Quick Payment Collection -->
+    <div id="paymentModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl">
+            <h3 class="font-bold text-sm text-slate-800 mb-2 flex items-center">
+                <i class="fa-solid fa-money-bill-wave text-emerald-600 mr-2"></i> বকেয়া পরিশোধ গ্রহণ
+            </h3>
+            <p id="payModalCustomer" class="text-xs text-slate-500 mb-3"></p>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-slate-600 mb-1">মোট বকেয়া ছিল</label>
+                    <input type="text" id="payModalCurrentDue" readonly class="w-full px-3 py-1.5 bg-red-50 border border-red-200 text-red-600 font-bold rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-600 mb-1">এখন কত টাকা জমা দিচ্ছেন? *</label>
+                    <input type="number" id="payModalNewAmount" min="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div class="flex items-center space-x-2 pt-1">
+                    <input type="checkbox" id="markDeliveredCheck" checked class="rounded text-indigo-600">
+                    <label for="markDeliveredCheck" class="text-xs text-slate-700">একই সাথে ডেলিভারি সম্পন্ন মার্ক করুন</label>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-2 mt-5">
+                <button onclick="closeModal('paymentModal')" class="px-3 py-1.5 border border-slate-300 text-slate-600 rounded-lg text-xs">বাতিল</button>
+                <button onclick="saveQuickPayment()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold">পেমেন্ট নিশ্চিত করুন</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Data Backup & Restore -->
+    <div id="backupModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-sm text-slate-800 flex items-center">
+                    <i class="fa-solid fa-cloud-arrow-down text-indigo-600 mr-2"></i> ডাটা ব্যাকআপ ও রিস্টোর
+                </h3>
+                <button onclick="closeModal('backupModal')" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">আপনার ব্রাউজারের সকল সার্ভিসিং হিসাব কম্পিউটারে সেভ করে রাখতে পারেন অথবা পুরাতন ব্যাকআপ ফাইল থেকে রিস্টোর করতে পারেন।</p>
+            
+            <div class="space-y-3">
+                <button onclick="exportData()" class="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center">
+                    <i class="fa-solid fa-download mr-2"></i> ব্যাকআপ ফাইল ডাউনলোড করুন (JSON)
+                </button>
+                
+                <div class="border-t border-slate-200 pt-3">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">ব্যাকআপ ফাইল থেকে রিস্টোর করুন:</label>
+                    <input type="file" id="importFileInput" accept=".json" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+                    <button onclick="importData()" class="mt-2 w-full bg-slate-800 hover:bg-slate-900 text-white py-2 px-3 rounded-lg text-xs font-semibold">
+                        রিস্টোর শুরু করুন
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs flex items-center space-x-2 transition-all duration-300 opacity-0 pointer-events-none z-50">
+        <i id="toastIcon" class="fa-solid fa-check text-emerald-400"></i>
+        <span id="toastMsg">বিজ্ঞপ্তি</span>
+    </div>
+
+    <!-- Application Logic (JS) -->
+    <script>
+        // Storage Key
+        const STORAGE_KEY = 'scale_service_records_v1';
+
+        // State
+        let records = [];
+        let currentFilter = 'all';
+        let currentViewingId = null;
+        let paymentTargetId = null;
+
+        // Initial Seed Demo Data if empty
+        const initialSeeds = [
+            {
+                id: '1001',
+                custName: 'মো: শফিকুল ইসলাম (মুদি দোকান)',
+                custPhone: '01712345678',
+                machineType: '৪০ কেজি টেবিল স্কেল',
+                problemDesc: 'নতুন ৬ ভোল্ট ব্যাটারি লাগানো ও ক্যালিব্রেশন',
+                intakeDate: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
+                deliveryDate: new Date().toISOString().split('T')[0],
+                totalCost: 750,
+                advancePaid: 200,
+                dueAmount: 550,
+                workStatus: 'ready'
+            },
+            {
+                id: '1002',
+                custName: 'করিম পোল্ট্রি ফিড',
+                custPhone: '01898765432',
+                machineType: '১০০ কেজি প্ল্যাটফর্ম স্কেল',
+                problemDesc: 'ডিসপ্লে সমস্যা ও লোড সেল তার জোড়া',
+                intakeDate: new Date().toISOString().split('T')[0],
+                deliveryDate: '',
+                totalCost: 1200,
+                advancePaid: 500,
+                dueAmount: 700,
+                workStatus: 'pending'
+            },
+            {
+                id: '1003',
+                custName: 'হাজী রাইস মিল',
+                custPhone: '01911223344',
+                machineType: '৩০০ কেজি হেভি স্কেল',
+                problemDesc: 'মাদারবোর্ড আইসি পরিবর্তন ও নতুন তার',
+                intakeDate: new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0],
+                deliveryDate: new Date(Date.now() - 1 * 86400000).toISOString().split('T')[0],
+                totalCost: 1500,
+                advancePaid: 1500,
+                dueAmount: 0,
+                workStatus: 'delivered'
+            }
+        ];
+
+        // Initialize App on Window Load
+        window.onload = function() {
+            loadRecords();
+            document.getElementById('intakeDate').value = new Date().toISOString().split('T')[0];
+            renderTable();
+            updateDashboard();
+        };
+
+        // Load from LocalStorage
+        function loadRecords() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    records = JSON.parse(stored);
+                } else {
+                    records = [...initialSeeds];
+                    saveRecords();
+                }
+            } catch (e) {
+                console.error("Storage error:", e);
+                records = [...initialSeeds];
+            }
+        }
+
+        // Save to LocalStorage
+        function saveRecords() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+            } catch (e) {
+                console.error("Save error:", e);
+            }
+        }
+
+        // Form Due Calculation
+        function calculateDue() {
+            const total = parseFloat(document.getElementById('totalCost').value) || 0;
+            const advance = parseFloat(document.getElementById('advancePaid').value) || 0;
+            const due = Math.max(0, total - advance);
+            document.getElementById('dueAmount').value = due;
+        }
+
+        // Add or Update Entry
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const editId = document.getElementById('editEntryId').value;
+
+            const name = document.getElementById('custName').value.trim();
+            const phone = document.getElementById('custPhone').value.trim();
+            const machine = document.getElementById('machineType').value.trim();
+            const problem = document.getElementById('problemDesc').value.trim();
+            const intake = document.getElementById('intakeDate').value;
+            const delivery = document.getElementById('deliveryDate').value;
+            const total = parseFloat(document.getElementById('totalCost').value) || 0;
+            const advance = parseFloat(document.getElementById('advancePaid').value) || 0;
+            const due = Math.max(0, total - advance);
+            const status = document.getElementById('workStatus').value;
+
+            if (editId) {
+                // Update
+                const index = records.findIndex(r => r.id === editId);
+                if (index !== -1) {
+                    records[index] = {
+                        ...records[index],
+                        custName: name,
+                        custPhone: phone,
+                        machineType: machine,
+                        problemDesc: problem,
+                        intakeDate: intake,
+                        deliveryDate: delivery,
+                        totalCost: total,
+                        advancePaid: advance,
+                        dueAmount: due,
+                        workStatus: status
+                    };
+                    showToast('রেকর্ডটি সফলভাবে আপডেট করা হয়েছে!', 'check');
+                }
+            } else {
+                // Create
+                const newId = String(Math.floor(1000 + Math.random() * 9000));
+                records.unshift({
+                    id: newId,
+                    custName: name,
+                    custPhone: phone,
+                    machineType: machine,
+                    problemDesc: problem,
+                    intakeDate: intake,
+                    deliveryDate: delivery,
+                    totalCost: total,
+                    advancePaid: advance,
+                    dueAmount: due,
+                    workStatus: status
+                });
+                showToast('নতুন সার্ভিস সফলভাবে যুক্ত হয়েছে!', 'check');
+            }
+
+            saveRecords();
+            closeModal('newEntryModal');
+            renderTable();
+            updateDashboard();
+        }
+
+        // Edit Entry Trigger
+        function openEditModal(id) {
+            const item = records.find(r => r.id === id);
+            if (!item) return;
+
+            document.getElementById('editEntryId').value = item.id;
+            document.getElementById('custName').value = item.custName;
+            document.getElementById('custPhone').value = item.custPhone;
+            document.getElementById('machineType').value = item.machineType || '';
+            document.getElementById('problemDesc').value = item.problemDesc || '';
+            document.getElementById('intakeDate').value = item.intakeDate;
+            document.getElementById('deliveryDate').value = item.deliveryDate || '';
+            document.getElementById('totalCost').value = item.totalCost;
+            document.getElementById('advancePaid').value = item.advancePaid;
+            document.getElementById('dueAmount').value = item.dueAmount;
+            document.getElementById('workStatus').value = item.workStatus;
+
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen mr-2 text-amber-300"></i> সার্ভিস এন্ট্রি এডিট করুন';
+            openModal('newEntryModal');
+        }
+
+        // Delete Entry
+        function deleteEntry(id) {
+            const confirmed = window.confirm('আপনি কি নিশ্চিত যে এই সার্ভিস রেকর্ডটি ডিলিট করতে চান?');
+            if (confirmed) {
+                records = records.filter(r => r.id !== id);
+                saveRecords();
+                renderTable();
+                updateDashboard();
+                showToast('রেকর্ড মুছে ফেলা হয়েছে', 'trash');
+            }
+        }
+
+        // Render Table & Filter
+        function renderTable() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const timeFilter = document.getElementById('timeFilter').value;
+            const tbody = document.getElementById('serviceTableBody');
+            const emptyState = document.getElementById('emptyState');
+
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const oneWeekAgo = now.getTime() - (7 * 24 * 60 * 60 * 1000);
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+            const filtered = records.filter(item => {
+                // Search match
+                const matchSearch = item.custName.toLowerCase().includes(search) || 
+                                    item.custPhone.includes(search) || 
+                                    (item.machineType && item.machineType.toLowerCase().includes(search));
+
+                // Status match
+                let matchStatus = true;
+                if (currentFilter === 'pending') matchStatus = item.workStatus === 'pending';
+                else if (currentFilter === 'ready') matchStatus = item.workStatus === 'ready';
+                else if (currentFilter === 'delivered') matchStatus = item.workStatus === 'delivered';
+                else if (currentFilter === 'due') matchStatus = item.dueAmount > 0;
+
+                // Time match
+                let matchTime = true;
+                const recordTime = new Date(item.intakeDate).getTime();
+                if (timeFilter === 'today') {
+                    matchTime = recordTime >= startOfToday;
+                } else if (timeFilter === 'week') {
+                    matchTime = recordTime >= oneWeekAgo;
+                } else if (timeFilter === 'month') {
+                    matchTime = recordTime >= startOfMonth;
+                }
+
+                return matchSearch && matchStatus && matchTime;
+            });
+
+            document.getElementById('recordCount').innerText = filtered.length;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            tbody.innerHTML = filtered.map(item => {
+                // Status badge
+                let statusBadge = '';
+                if (item.workStatus === 'pending') {
+                    statusBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800"><i class="fa-solid fa-clock mr-1"></i> বাকি</span>';
+                } else if (item.workStatus === 'ready') {
+                    statusBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800"><i class="fa-solid fa-circle-check mr-1"></i> রেডি</span>';
+                } else if (item.workStatus === 'delivered') {
+                    statusBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-box-open mr-1"></i> ডেলিভার্ড</span>';
+                } else {
+                    statusBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">বাতিল</span>';
+                }
+
+                return `
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="p-3 align-top whitespace-nowrap">
+                        <span class="font-mono font-bold text-indigo-700">#${item.id}</span>
+                        <div class="text-[11px] text-slate-400 mt-0.5">${item.intakeDate}</div>
+                    </td>
+                    <td class="p-3 align-top">
+                        <div class="font-semibold text-slate-800">${item.custName}</div>
+                        <a href="tel:${item.custPhone}" class="text-xs text-indigo-600 hover:underline flex items-center mt-0.5">
+                            <i class="fa-solid fa-phone text-[10px] mr-1"></i> ${item.custPhone}
+                        </a>
+                    </td>
+                    <td class="p-3 align-top">
+                        <div class="text-xs font-medium text-slate-800">${item.machineType || 'ডিজিটাল স্কেল'}</div>
+                        <div class="text-[11px] text-slate-500 line-clamp-1 mt-0.5">${item.problemDesc || 'সাধারণ সার্ভিসিং'}</div>
+                    </td>
+                    <td class="p-3 align-top text-right whitespace-nowrap">
+                        <div class="text-xs font-semibold text-slate-800">বিল: ৳ ${item.totalCost}</div>
+                        <div class="text-[11px] text-emerald-600 font-medium">জমা: ৳ ${item.advancePaid}</div>
+                        ${item.dueAmount > 0 
+                            ? `<span class="inline-block mt-0.5 text-[11px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">বাকি: ৳ ${item.dueAmount}</span>` 
+                            : `<span class="inline-block mt-0.5 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">পরিশোধিত</span>`
+                        }
+                    </td>
+                    <td class="p-3 align-top text-center whitespace-nowrap">
+                        ${statusBadge}
+                    </td>
+                    <td class="p-3 align-top text-center whitespace-nowrap">
+                        <div class="flex items-center justify-center space-x-1.5">
+                            <!-- Quick Payment Button -->
+                            ${item.dueAmount > 0 ? `
+                                <button onclick="openPaymentModal('${item.id}')" title="বকেয়া জমা নিন" class="w-7 h-7 rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center text-xs">
+                                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                                </button>
+                            ` : ''}
+
+                            <!-- View Memo Button -->
+                            <button onclick="viewMemo('${item.id}')" title="ক্যাশ মেমো দেখুন" class="w-7 h-7 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-receipt"></i>
+                            </button>
+
+                            <!-- Edit Button -->
+                            <button onclick="openEditModal('${item.id}')" title="এডিট করুন" class="w-7 h-7 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+
+                            <!-- Delete Button -->
+                            <button onclick="deleteEntry('${item.id}')" title="মুছে ফেলুন" class="w-7 h-7 rounded bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        // Status Filter Buttons
+        function setStatusFilter(status) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white');
+                btn.classList.add('bg-slate-100', 'text-slate-600');
+            });
+
+            const activeBtnMap = {
+                all: 'btnFilterAll',
+                pending: 'btnFilterPending',
+                ready: 'btnFilterReady',
+                delivered: 'btnFilterDelivered',
+                due: 'btnFilterDue'
+            };
+
+            const activeId = activeBtnMap[status];
+            if (activeId) {
+                const el = document.getElementById(activeId);
+                el.classList.remove('bg-slate-100', 'text-slate-600');
+                el.classList.add('bg-indigo-600', 'text-white');
+            }
+
+            renderTable();
+        }
+
+        // Update Dashboard Summary Stats
+        function updateDashboard() {
+            const pendingCount = records.filter(r => r.workStatus === 'pending').length;
+            const readyCount = records.filter(r => r.workStatus === 'ready').length;
+            
+            // This week completed count (delivered or ready)
+            const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            const weekCompleted = records.filter(r => 
+                (r.workStatus === 'delivered' || r.workStatus === 'ready') && 
+                new Date(r.intakeDate).getTime() >= oneWeekAgo
+            ).length;
+
+            // Total Due Balance
+            const totalDue = records.reduce((sum, r) => sum + (parseFloat(r.dueAmount) || 0), 0);
+
+            // Monthly Collected Cash
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+            const monthlyPaid = records
+                .filter(r => new Date(r.intakeDate).getTime() >= startOfMonth)
+                .reduce((sum, r) => sum + (parseFloat(r.advancePaid) || 0), 0);
+
+            document.getElementById('statPending').innerText = `${pendingCount} টি`;
+            document.getElementById('statReady').innerText = `${readyCount} টি`;
+            document.getElementById('statWeekCompleted').innerText = `${weekCompleted} টি`;
+            document.getElementById('statTotalDue').innerText = `৳ ${totalDue.toLocaleString('bn-BD')}`;
+            document.getElementById('statMonthlyPaid').innerText = `৳ ${monthlyPaid.toLocaleString('bn-BD')}`;
+        }
+
+        // Quick Payment Modal
+        function openPaymentModal(id) {
+            paymentTargetId = id;
+            const item = records.find(r => r.id === id);
+            if (!item) return;
+
+            document.getElementById('payModalCustomer').innerText = `গ্রাহক: ${item.custName} | মেশিন: ${item.machineType || 'স্কেল'}`;
+            document.getElementById('payModalCurrentDue').value = `৳ ${item.dueAmount}`;
+            document.getElementById('payModalNewAmount').value = item.dueAmount;
+            openModal('paymentModal');
+        }
+
+        function saveQuickPayment() {
+            if (!paymentTargetId) return;
+            const item = records.find(r => r.id === paymentTargetId);
+            if (!item) return;
+
+            const payNow = parseFloat(document.getElementById('payModalNewAmount').value) || 0;
+            if (payNow <= 0) {
+                alert('অনুগ্রহ করে সঠিক টাকার পরিমাণ লিখুন');
+                return;
+            }
+
+            item.advancePaid = (parseFloat(item.advancePaid) || 0) + payNow;
+            item.dueAmount = Math.max(0, item.totalCost - item.advancePaid);
+
+            if (document.getElementById('markDeliveredCheck').checked) {
+                item.workStatus = 'delivered';
+                if (!item.deliveryDate) {
+                    item.deliveryDate = new Date().toISOString().split('T')[0];
+                }
+            }
+
+            saveRecords();
+            closeModal('paymentModal');
+            renderTable();
+            updateDashboard();
+            showToast('পেমেন্ট সফলভাবে গ্রহণ করা হয়েছে!', 'check');
+        }
+
+        // View Memo
+        function viewMemo(id) {
+            currentViewingId = id;
+            const item = records.find(r => r.id === id);
+            if (!item) return;
+
+            document.getElementById('memoToken').innerText = `#${item.id}`;
+            document.getElementById('memoCustomer').innerText = item.custName;
+            document.getElementById('memoPhone').innerText = item.custPhone;
+            document.getElementById('memoIntakeDate').innerText = item.intakeDate;
+            document.getElementById('memoDeliveryDate').innerText = item.deliveryDate || 'শীঘ্রই';
+            document.getElementById('memoMachine').innerText = item.machineType || 'ডিজিটাল স্কেল';
+            document.getElementById('memoProblem').innerText = item.problemDesc ? `সমস্যা: ${item.problemDesc}` : 'সাধারণ সার্ভিসিং';
+            document.getElementById('memoTotalBill').innerText = `৳ ${item.totalCost}`;
+            document.getElementById('memoCalcTotal').innerText = `৳ ${item.totalCost}`;
+            document.getElementById('memoCalcPaid').innerText = `৳ ${item.advancePaid}`;
+            document.getElementById('memoCalcDue').innerText = `৳ ${item.dueAmount}`;
+
+            const badgeEl = document.getElementById('memoStatusBadge');
+            if (item.workStatus === 'pending') badgeEl.innerText = 'কাজ চলছে';
+            else if (item.workStatus === 'ready') badgeEl.innerText = 'মেরামত সম্পন্ন';
+            else if (item.workStatus === 'delivered') badgeEl.innerText = 'ডেলিভারি হয়েছে';
+            else badgeEl.innerText = 'বাতিল';
+
+            openModal('memoModal');
+        }
+
+        // WhatsApp Notification
+        function shareWhatsApp() {
+            if (!currentViewingId) return;
+            const item = records.find(r => r.id === currentViewingId);
+            if (!item) return;
+
+            let phone = item.custPhone.replace(/[^0-9]/g, '');
+            if (phone.startsWith('0')) {
+                phone = '88' + phone;
+            }
+
+            const msg = `সম্মানিত ${item.custName},\nআপনার সার্ভিসিং মেশিন (${item.machineType || 'ডিজিটাল স্কেল'}) এর তথ্য:\nটোকেন নং: #${item.id}\nমোট বিল: ৳ ${item.totalCost}\nপরিশোধ: ৳ ${item.advancePaid}\nঅবশিষ্ট বকেয়া: ৳ ${item.dueAmount}\nঅবস্থা: ${item.workStatus === 'ready' ? 'মেরামত সম্পন্ন, ডেলিভারি নিতে পারেন।' : item.workStatus === 'delivered' ? 'ডেলিভারি সম্পন্ন।' : 'কাজ প্রক্রিয়াধীন।'}\n- মা ডিজিটাল স্কেল সার্ভিস সেন্টার।`;
+
+            const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+        }
+
+        // Backup Export JSON
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(records, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `scale_service_backup_${new Date().toISOString().split('T')[0]}.json`);
+            dlAnchorElem.click();
+            showToast('ব্যাকআপ ফাইল ডাউনলোড সফল হয়েছে', 'download');
+        }
+
+        // Backup Import JSON
+        function importData() {
+            const fileInput = document.getElementById('importFileInput');
+            if (!fileInput.files.length) {
+                alert('অনুগ্রহ করে একটি JSON ব্যাকআপ ফাইল নির্বাচন করুন');
+                return;
+            }
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        records = imported;
+                        saveRecords();
+                        renderTable();
+                        updateDashboard();
+                        closeModal('backupModal');
+                        showToast('ডাটা সফলভাবে রিস্টোর হয়েছে!', 'check');
+                    } else {
+                        alert('ফাইল ফরম্যাট সঠিক নয়');
+                    }
+                } catch (err) {
+                    alert('ফাইলটি পড়া সম্ভব হয়নি। সঠিক ফাইল দিন।');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Modal Helpers
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            if (id === 'newEntryModal') {
+                document.getElementById('serviceForm').reset();
+                document.getElementById('editEntryId').value = '';
+                document.getElementById('intakeDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-wrench mr-2 text-amber-300"></i> নতুন মেশিন সার্ভিস এন্ট্রি';
+                calculateDue();
+            }
+        }
+
+        // Toast Helper
+        function showToast(msg, icon = 'check') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = msg;
+            toastIcon.className = `fa-solid fa-${icon} text-emerald-400`;
+
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
